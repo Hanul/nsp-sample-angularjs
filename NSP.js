@@ -19,8 +19,169 @@ __path = require('path'),
 // shared store
 __sharedStore = SHARED_STORE('__NSP_SHARED_STORE'),
 
+// parse func str
+__parseFuncStr = function __parse(__requestInfo, __sourcePath, __source, __response, self, __isNotUsingDCBN) {
+	
+	var
+	// html
+	__html = '',
+	
+	// redirect url
+	__redirectURL,
+	
+	// last index
+	__lastIndex = 0,
+	
+	// start code index
+	__startCodeIndex = -1,
+	
+	// start pstr index
+	__startPstrIndex = -1,
+	
+	// start pstr2 index
+	__startPstr2Index = -1,
+	
+	// start conditional index
+	__startCondIndex = -1,
+	
+	// start each index
+	__startEachIndex = -1,
+	
+	// is paused
+	__isPaused,
+	
+	// is ignored
+	__isIgnored,
+	
+	// last cond
+	__lastCond,
+	
+	// is ignore stack
+	__isIgnoreStack = [],
+	
+	// is repeat stack
+	__isRepeatStack = [],
+	
+	// repeat info
+	__repeatInfo,
+	
+	// for repeat
+	__repeatSplits,
+	__repeatTarget, __repeatTargetName, __repeatTargetNowKey, __repeatTargetBeforeKey, __repeatTargetFirstKey,
+	__repeatItemStr, __repeatItemSplits, __repeatItemName, __repeatItemValue,
+	
+	// cookie info
+	__cookieInfo = __requestInfo.cookies,
+	
+	// ohters
+	__i, __ch, __line = 1, __column = 1, __lastLine = 1, __lastColumn = 1;
+	
+	function print(content) {
+		
+		if (content !== undefined) {
+			if (typeof content === 'string') {
+				__html += content;
+			} else {
+				__html += JSON.stringify(content);
+			}
+		}
+	}
+	
+	function save(name, value) {
+		
+		// 변수 삭제
+		if (value === undefined) {
+			__sharedStore.remove(name);
+		}
+		
+		else {
+			__sharedStore.save({
+				name : name,
+				value : value
+			});
+		}
+	}
+	
+	function load(name) {
+		return __sharedStore.get(name);
+	}
+	
+	function cookie(name, value, expireSeconds, path, domain) {
+		
+		if (value === undefined) {
+			value = __cookieInfo[name];
+			
+			if (CHECK_IS_DATA(value) === true) {
+				return value.value;
+			} else {
+				return value;
+			}
+		}
+		
+		else {
+			
+			__cookieInfo[name] = {
+				value : value,
+				expireSeconds : expireSeconds,
+				path : path,
+				domain : domain
+			};
+			
+			return value;
+		}
+	}
+	
+	function upload(uploadPath, callbackOrHandlers) {
+		
+		var
+		// callback
+		callback,
+
+		// error handler
+		errorHandler,
+
+		// over file size handler
+		overFileSizeHandler;
+
+		if (CHECK_IS_DATA(callbackOrHandlers) !== true) {
+			callback = callbackOrHandlers;
+		} else {
+			callback = callbackOrHandlers.success;
+			errorHandler = callbackOrHandlers.error;
+			overFileSizeHandler = callbackOrHandlers.overFileSize;
+		}
+		
+		UPLOAD_REQUEST({
+			requestInfo : __requestInfo,
+			uploadPath : __path.dirname(__sourcePath) + '/' + uploadPath
+		}, {
+			error : errorHandler,
+			overFileSize : overFileSizeHandler,
+			success : callback
+		});
+	}
+	
+	function redirect(url) {
+		__redirectURL = url;
+	}
+	
+	function pause() {
+		__isPaused = true;
+	}
+	
+	eval(__resumeFuncStr);
+	
+	resume();
+	
+}.toString(),
+
 // resume func str
 __resumeFuncStr = function resume() {
+	
+	eval(__parseFuncStr);
+	eval(__resumeFuncStr);
+	
+	__isPaused = false;
 	
 	function include(__uri, __callback) {
 		
@@ -72,10 +233,6 @@ __resumeFuncStr = function resume() {
 			}
 		});
 	}
-	
-	eval(__resumeFuncStr);
-	
-	__isPaused = false;
 	
 	for (__i = __lastIndex; __i <= __source.length; __i += 1) {
 		__ch = __source[__i];
@@ -307,7 +464,6 @@ __resumeFuncStr = function resume() {
 				
 				if (
 				__isIgnored !== true &&
-				(__repeatInfo === undefined || __repeatInfo.key !== undefined) &&
 				__startCodeIndex === -1 &&
 				__startPstrIndex === -1 &&
 				__startPstr2Index === -1 &&
@@ -315,14 +471,20 @@ __resumeFuncStr = function resume() {
 				__startEachIndex === -1) {
 					
 					if (__i > 2 && __source[__i - 3] === '\\' && __source[__i - 2] === '\\') {
-						print(__source.substring(__lastIndex, __i - 2));
+						if (__repeatInfo === undefined || __repeatInfo.key !== undefined) {
+							print(__source.substring(__lastIndex, __i - 2));
+						}
 						__startEachIndex = __i + 1;
 					} else if (__i > 1 && __source[__i - 2] === '\\') {
 						// Node.js용 코드 아님, 무시
-						print(__source.substring(__lastIndex, __i - 2));
-						print(__source.substring(__i - 1, __i + 1));
+						if (__repeatInfo === undefined || __repeatInfo.key !== undefined) {
+							print(__source.substring(__lastIndex, __i - 2));
+							print(__source.substring(__i - 1, __i + 1));
+						}
 					} else {
-						print(__source.substring(__lastIndex, __i - 1));
+						if (__repeatInfo === undefined || __repeatInfo.key !== undefined) {
+							print(__source.substring(__lastIndex, __i - 1));
+						}
 						__startEachIndex = __i + 1;
 					}
 					__lastIndex = __i + 1;
@@ -345,13 +507,14 @@ __resumeFuncStr = function resume() {
 					if (__i > 5 && __source[__i - 5] === '\\' && __source[__i - 4] === '\\') {
 						
 						if (__repeatInfo !== undefined && __repeatInfo.key !== undefined) {
-							print(__source.substring(__lastIndex, __i - 4));
 							
 							__repeatTarget = __repeatInfo.target;
 							__repeatTargetName = __repeatInfo.targetName;
 							__repeatTargetFirstKey = __repeatInfo.key;
 							__repeatItemName = __repeatInfo.name;
 							__repeatItemValue = __repeatInfo.value;
+							
+							print(__source.substring(__lastIndex, __i - 4));
 							
 							// find next key
 							__repeatTargetBeforeKey = undefined;
@@ -365,7 +528,7 @@ __resumeFuncStr = function resume() {
 								}
 							}
 							
-							if (__repeatTargetNowKey !== __repeatTargetFirstKey) {
+							if (__repeatTargetFirstKey !== undefined && __repeatTargetNowKey !== __repeatTargetFirstKey) {
 								
 								__i = __repeatInfo.startIndex - 1;
 								__line = __repeatInfo.line;
@@ -385,6 +548,11 @@ __resumeFuncStr = function resume() {
 								__isRepeatStack.pop();
 								__repeatInfo = __isRepeatStack[__isRepeatStack.length - 1];
 							}
+						}
+						
+						else {
+							__isRepeatStack.pop();
+							__repeatInfo = __isRepeatStack[__isRepeatStack.length - 1];
 						}
 					}
 					
@@ -397,13 +565,14 @@ __resumeFuncStr = function resume() {
 					else {
 						
 						if (__repeatInfo !== undefined && __repeatInfo.key !== undefined) {
-							print(__source.substring(__lastIndex, __i - 3));
 							
 							__repeatTarget = __repeatInfo.target;
 							__repeatTargetName = __repeatInfo.targetName;
 							__repeatTargetFirstKey = __repeatInfo.key;
 							__repeatItemName = __repeatInfo.name;
 							__repeatItemValue = __repeatInfo.value;
+							
+							print(__source.substring(__lastIndex, __i - 3));
 							
 							// find next key
 							__repeatTargetBeforeKey = undefined;
@@ -438,6 +607,11 @@ __resumeFuncStr = function resume() {
 								__repeatInfo = __isRepeatStack[__isRepeatStack.length - 1];
 							}
 						}
+						
+						else {
+							__isRepeatStack.pop();
+							__repeatInfo = __isRepeatStack[__isRepeatStack.length - 1];
+						}
 					}
 					
 					__lastIndex = __i + 1;
@@ -449,12 +623,12 @@ __resumeFuncStr = function resume() {
 				
 				if (
 				__isIgnored !== true &&
-				(__repeatInfo === undefined || __repeatInfo.key !== undefined) &&
 				__startCodeIndex === -1 &&
 				__startPstrIndex === -1 &&
 				__startPstr2Index === -1) {
 					
 					if (
+					(__repeatInfo === undefined || __repeatInfo.key !== undefined) &&
 					__startCondIndex !== -1 &&
 					__startEachIndex === -1) {
 						
@@ -495,12 +669,29 @@ __resumeFuncStr = function resume() {
 						
 						try {
 							__repeatSplits = __source.substring(__lastIndex, __i).split('->');
-							__repeatTargetName = __repeatSplits[0];
-							__repeatTarget = eval(__repeatTargetName);
+							
+							if (__repeatInfo === undefined || __repeatInfo.key !== undefined) {
+								__repeatTargetName = __repeatSplits[0];
+								__repeatTarget = eval(__repeatTargetName);
+							} else {
+								__repeatTargetName = undefined;
+								__repeatTarget = undefined;
+							}
+							
 							__repeatItemStr = __repeatSplits[1];
 							
+							if (__repeatTarget === undefined) {
+								__isRepeatStack.push(__repeatInfo = {
+									targetName : __repeatTargetName,
+									value : __repeatItemStr,
+									startIndex : __i + 1,
+									line : __line,
+									column : __column
+								});
+							}
+							
 							// name이 없을 때
-							if (__repeatItemStr.indexOf(':') === -1) {
+							else if (__repeatItemStr.indexOf(':') === -1) {
 								
 								// find first key
 								__repeatTargetFirstKey = undefined;
@@ -584,13 +775,24 @@ __resumeFuncStr = function resume() {
 		print(__source.substring(__lastIndex));
 	}
 	
-	__response({
-		headers : {
-			'Set-Cookie' : CREATE_COOKIE_STR_ARRAY(__cookieInfo)
-		},
-		content : __html,
-		contentType : 'text/html'
-	});
+	if (__redirectURL !== undefined) {
+		__response({
+			statusCode : 302,
+			headers : {
+				'Location' : __redirectURL
+			}
+		});
+	}
+	
+	else {
+		__response({
+			headers : {
+				'Set-Cookie' : CREATE_COOKIE_STR_ARRAY(__cookieInfo)
+			},
+			content : __html,
+			contentType : 'text/html'
+		});
+	}
 	
 }.toString();
 
@@ -620,150 +822,6 @@ function __responseNotFound(response) {
 	});
 }
 
-function __parse(__requestInfo, __sourcePath, __source, __response, self, __isNotUsingDCBN) {
-	
-	var
-	// html
-	__html = '',
-	
-	// last index
-	__lastIndex = 0,
-	
-	// start code index
-	__startCodeIndex = -1,
-	
-	// start pstr index
-	__startPstrIndex = -1,
-	
-	// start pstr2 index
-	__startPstr2Index = -1,
-	
-	// start conditional index
-	__startCondIndex = -1,
-	
-	// start each index
-	__startEachIndex = -1,
-	
-	// is paused
-	__isPaused,
-	
-	// is ignored
-	__isIgnored,
-	
-	// last cond
-	__lastCond,
-	
-	// is ignore stack
-	__isIgnoreStack = [],
-	
-	// is repeat stack
-	__isRepeatStack = [],
-	
-	// repeat info
-	__repeatInfo,
-	
-	// for repeat
-	__repeatSplits,
-	__repeatTarget, __repeatTargetName, __repeatTargetNowKey, __repeatTargetBeforeKey, __repeatTargetFirstKey,
-	__repeatItemStr, __repeatItemSplits, __repeatItemName, __repeatItemValue,
-	
-	// cookie info
-	__cookieInfo = __requestInfo.cookies,
-	
-	// ohters
-	__i, __ch, __line = 1, __column = 1, __lastLine = 1, __lastColumn = 1;
-	
-	function print(content) {
-		if (typeof content === 'string') {
-			__html += content;
-		} else {
-			__html += JSON.stringify(content);
-		}
-	}
-	
-	function save(name, value) {
-		
-		// 변수 삭제
-		if (value === undefined) {
-			__sharedStore.remove(name);
-		}
-		
-		else {
-			__sharedStore.save({
-				name : name,
-				value : value
-			});
-		}
-	}
-	
-	function load(name) {
-		return __sharedStore.get(name);
-	}
-	
-	function cookie(name, value, expireSeconds, path, domain) {
-		
-		if (value === undefined) {
-			value = __cookieInfo[name];
-			
-			if (CHECK_IS_DATA(value) === true) {
-				return value.value;
-			} else {
-				return value;
-			}
-		}
-		
-		else {
-			
-			__cookieInfo[name] = {
-				value : value,
-				expireSeconds : expireSeconds,
-				path : path,
-				domain : domain
-			};
-			
-			return value;
-		}
-	}
-	
-	function upload(uploadPath, callbackOrHandlers) {
-		
-		var
-		// callback
-		callback,
-
-		// error handler
-		errorHandler,
-
-		// over file size handler
-		overFileSizeHandler;
-
-		if (CHECK_IS_DATA(callbackOrHandlers) !== true) {
-			callback = callbackOrHandlers;
-		} else {
-			callback = callbackOrHandlers.success;
-			errorHandler = callbackOrHandlers.error;
-			overFileSizeHandler = callbackOrHandlers.overFileSize;
-		}
-		
-		UPLOAD_REQUEST({
-			requestInfo : __requestInfo,
-			uploadPath : __path.dirname(__sourcePath) + '/' + uploadPath
-		}, {
-			error : errorHandler,
-			overFileSize : overFileSizeHandler,
-			success : callback
-		});
-	}
-	
-	function pause() {
-		__isPaused = true;
-	}
-	
-	eval(__resumeFuncStr);
-	
-	resume();
-}
-
 // 멀티코어 CPU 지원
 CPU_CLUSTERING(function() {
 	
@@ -791,6 +849,8 @@ CPU_CLUSTERING(function() {
 	
 	// dev mode가 true일 때는 리소스 캐싱을 하지 않습니다.
 	CONFIG.isDevMode = config.isDevMode;
+	
+	eval(__parseFuncStr);
 
 	// run web server
 	RESOURCE_SERVER({
@@ -804,7 +864,7 @@ CPU_CLUSTERING(function() {
 			__responseNotFound(response);
 		},
 		
-		requestListener : function(requestInfo, response, onDisconnected, next) {
+		requestListener : function(requestInfo, response, onDisconnected, setRootPath, next) {
 			
 			var
 			// uri
@@ -881,33 +941,36 @@ CPU_CLUSTERING(function() {
 				});
 			};
 			
-			if (CHECK_IS_ARRAY(restURI) === true) {
+			if (restURI !== undefined) {
 				
-				if (CHECK_IS_IN({
-					array : restURI,
-					value : uri
-				}) === true) {
-					uri = restURI + '.nsp';
+				if (CHECK_IS_ARRAY(restURI) === true) {
+					
+					if (CHECK_IS_IN({
+						array : restURI,
+						value : uri
+					}) === true) {
+						uri = restURI + '.nsp';
+					}
+					
+					else {
+						
+						EACH(restURI, function(restURI) {
+							if (restURI + '/' === uri.substring(0, restURI.length + 1)) {
+								subURI = uri.substring(restURI.length + 1);
+								uri = restURI + '.nsp';
+								return false;
+							}
+						});
+					}
 				}
 				
 				else {
-					
-					EACH(restURI, function(restURI) {
-						if (restURI + '/' === uri.substring(0, restURI.length + 1)) {
-							subURI = uri.substring(restURI.length + 1);
-							uri = restURI + '.nsp';
-							return false;
-						}
-					});
-				}
-			}
-			
-			else {
-				if (restURI === uri) {
-					uri = restURI + '.nsp';
-				} else if (restURI + '/' === uri.substring(0, restURI.length + 1)) {
-					subURI = uri.substring(restURI.length + 1);
-					uri = restURI + '.nsp';
+					if (restURI === uri) {
+						uri = restURI + '.nsp';
+					} else if (restURI + '/' === uri.substring(0, restURI.length + 1)) {
+						subURI = uri.substring(restURI.length + 1);
+						uri = restURI + '.nsp';
+					}
 				}
 			}
 			
@@ -927,9 +990,20 @@ CPU_CLUSTERING(function() {
 			else if (ext === '') {
 				
 				CHECK_IS_EXISTS_FILE(path, function(isExists) {
+					
 					if (isExists === true) {
-						 next();
-					} else {
+					
+						CHECK_IS_FOLDER(path, function(isFolder) {
+							if (isFolder === true) {
+								path += '/index.nsp';
+								run();
+							} else {
+								next();
+							}
+						});
+					}
+					
+					else {
 						path += '.nsp';
 						run();
 					}
