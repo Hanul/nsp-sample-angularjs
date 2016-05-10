@@ -1,0 +1,13 @@
+<form ng-submit="submit(title, content)">
+	<div class="form-group {{title === undefined ? 'has-error' : ''}}">
+		<label class="control-label" for="write-form-title">글 제목</label>
+		<input type="text" class="form-control" id="write-form-title" placeholder="글 제목을 입력해주세요." ng-model="title" value="{{title}}">
+		<span ng-if="title === undefined" class="help-block">글 제목을 입력해주시기 바랍니다.</span>
+	</div>
+	<div class="form-group {{content === undefined ? 'has-error' : ''}}">
+		<label class="control-label" for="write-form-content">글 내용</label>
+		<textarea class="form-control" id="write-form-content" ng-model="content" rows="8">{{content}}</textarea>
+		<span ng-if="title === undefined" class="help-block">글 내용을 입력해주시기 바랍니다.</span>
+	</div>
+	<button type="submit" class="btn btn-primary">작성완료</button>
+</form>

@@ -1,0 +1,106 @@
+<%
+	var ret;
+	
+	var ObjectID = require('mongodb').ObjectID;
+	var id = self.subURI;
+	
+	if (id === '') {
+		
+		// list
+		if (self.method === 'GET') {
+		
+			require('mongodb').MongoClient.connect('mongodb://localhost:27017/nsp-sample-bbs', function(error, db) {
+			
+				db.collection('article').find().toArray(function(error, dataSet) {
+					if (error === null) {
+						ret = dataSet;
+						resume();
+					}
+				});
+			});
+			
+			pause();
+		}
+		
+		// write
+		else if (self.method === 'POST') {
+			
+			var data = self.params;
+			
+			var isNotEmpty = function(str) {
+				return str !== undefined && str !== '';
+			};
+			
+			if (
+			isNotEmpty(data.title) === true &&
+			isNotEmpty(data.content) === true) {
+				
+				require('mongodb').MongoClient.connect('mongodb://localhost:27017/nsp-sample-bbs', function(error, db) {
+					
+					db.collection('article').insertOne(data, function(error, result) {
+						if (error === null) {
+							ret = data._id.toString();
+							resume();
+						}
+					});
+				});
+				
+				pause();
+			}
+		}
+	}
+	
+	else {
+		
+		// read
+		if (self.method === 'GET') {
+			
+			require('mongodb').MongoClient.connect('mongodb://localhost:27017/nsp-sample-bbs', function(error, db) {
+			
+				db.collection('article').findOne({
+					_id : ObjectID(id)
+				}, function(error, data) {
+					if (error === null) {
+						ret = data;
+						resume();
+					}
+				});
+			});
+			
+			pause();
+		}
+		
+		// update
+		else if (self.method === 'PUT') {
+			
+			var data = self.params;
+			
+			var isNotEmpty = function(str) {
+				return str !== undefined && str !== '';
+			};
+			
+			if (
+			isNotEmpty(data.title) === true &&
+			isNotEmpty(data.content) === true) {
+				
+				var ObjectID = require('mongodb').ObjectID;
+				
+				require('mongodb').MongoClient.connect('mongodb://localhost:27017/nsp-sample-bbs', function(error, db) {
+					
+					db.collection('article').updateOne({
+						_id : ObjectID(id)
+					}, {
+						$set : data
+					}, function(error) {
+						if (error === null) {
+							ret = id;
+							resume();
+						}
+					});
+				});
+				
+				pause();
+			}
+		}
+	}
+%>{{ret}}

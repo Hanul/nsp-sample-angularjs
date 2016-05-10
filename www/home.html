@@ -1,0 +1,7 @@
+<a class="btn btn-primary" href="#/write">글 작성</a>
+<h3>글 목록</h3>
+<table class="table table-striped">
+	<tr ng-repeat="data in dataSet">
+		<td><a href="#/view/{{data._id.toString()}}">{{data.title}}</a></td>
+	</tr>
+</table>
