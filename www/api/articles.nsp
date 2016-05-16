@@ -102,5 +102,25 @@
 				pause();
 			}
 		}
+		
+		// remove
+		else if (self.method === 'DELETE') {
+			
+			var ObjectID = require('mongodb').ObjectID;
+			
+			require('mongodb').MongoClient.connect('mongodb://localhost:27017/nsp-sample-bbs', function(error, db) {
+			
+				db.collection('article').deleteOne({
+					_id : ObjectID(id)
+				}, function(error, result) {
+					if (error === null) {
+						ret = id;
+						resume();
+					}
+				});
+			});
+			
+			pause();
+		}
 	}
 %>{{ret}}

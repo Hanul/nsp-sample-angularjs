@@ -41,3 +41,15 @@ function($scope, $http, $location, $routeParams) {
 		}
 	};
 }]);
+
+bbsControllers.controller('RemoveCtrl', ['$scope', '$http', '$location', '$routeParams',
+function($scope, $http, $location, $routeParams) {
+	$scope.id = $routeParams.id;
+	$scope.submit = function() {
+		if ($routeParams.id !== undefined) {
+			$http.delete('api/articles/' + $routeParams.id).success(function(id) {
+				$location.path('');
+			});
+		}
+	};
+}]);
